@@ -7,6 +7,9 @@ const tesseract = require('node-tesseract-ocr');
 const fs = require("fs");
 const stripchar = require('stripchar').StripChar;
 const mongoose = require('mongoose');
+const GridFsStorage = require('multer-gridfs-storage');
+const Grid =require('gridfs-stream');
+var sizeOf = require('image-size');
 var upperCase = require('upper-case');
 
 
@@ -26,8 +29,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs')
 
 
-
-
 app.get('/', function (req, res) {
   res.render('index');
 })
@@ -35,7 +36,6 @@ app.get('/', function (req, res) {
 
 
 app.post('/', function (req, res) {
-
 
 	upload(req,res,function(err) {
 			let name = req.body.ownName;
@@ -49,6 +49,8 @@ app.post('/', function (req, res) {
 			let ext = path.extname(req.file.originalname)
 			let filename = req.file.originalname;
 			let pa = "./uploads/"+filename;
+			var dimensions = sizeOf(pa);
+
 
 			if(err) 
 			{
@@ -58,6 +60,10 @@ app.post('/', function (req, res) {
 			{
 				return res.render('status',{scanstatus:"Only .jpeg images allowed !"})
 			}
+			else if(dimensions.width<500, dimensions.height<300)
+			{
+				return res.render('status',{scanstatus:"Size of scanned image is small !"})
+			}
 			else
 			{
 				var ocrname;
@@ -66,9 +72,6 @@ app.post('/', function (req, res) {
 				var ocrpan;
 				var j=0;
 				var err_details="";
-
-				
-
 					const config = {
 					  lang: 'eng',
 					  oem: 1,
@@ -79,6 +82,7 @@ app.post('/', function (req, res) {
 				  .recognize(pa, config)
 				  .then(text => {
 				    var phaseone = text.split("\n")
+				    //console.log(phaseone);
 				    var temp=[];
 				    var first = /TAX|TA|INCOME|INCO|DEPARTMENT|DEPART|DEPAR|DEPA/;
 				    for(var i = 0;i<=phaseone.length;i++)
@@ -104,7 +108,7 @@ app.post('/', function (req, res) {
 				    	    	break;
 				    	    }
 				    }
-				    console.log("######################OCR-SCANNED######################");
+				    /*console.log("######################OCR-SCANNED######################");
 				    console.log(ocrname);
 				    console.log(ocrfname);
 				    console.log(ocrdate);
@@ -114,26 +118,26 @@ app.post('/', function (req, res) {
 					console.log(fname);
 					console.log(dob);
 					console.log(pan);
-					console.log("######################################################");
+					console.log("######################################################");*/
 
 					if(ocrname!=name)
 						{
 						j++;
-						err_details+="\n Name didn't match \n";
+						err_details+="\n Name didn't match. \n";
 						}  
 					if(ocrfname!= fname)
 						{
 						j++;
-						err_details+=" \n Father's name didn't match \n";
+						err_details+=" \n Father's name didn't match. \n";
 						} 
 					if(ocrdate!=dob)
 						{
-						err_details+="\n D.O.B doesn't match \n";
+						err_details+="\n D.O.B didn't match. \n";
 						j++;
 						} 
 					if(ocrpan!=pan)
 						{	
-						err_details+="\n PAN doesn't match \n";
+						err_details+="\n PAN didn't match. \n";
 						j++;
 						}
 
@@ -147,6 +151,9 @@ app.post('/', function (req, res) {
 							mongoose.connect(mongoDB, { useNewUrlParser: true });
 							var db = mongoose.connection;
 
+							let gfs;
+
+
 							db.on("error",console.error.bind(console,"connection error"));
 							db.once("open",function(res,callback){
 								console.log("Connection Succeeded");
@@ -159,17 +166,23 @@ app.post('/', function (req, res) {
 								Cname:String,
 								fathersname:String,
 								d_o_b:String,
-								pan_number:String
+								pan_number:String,
+								data: Buffer,
+								contentType: String
 							});
-
+							var imgData = fs.readFileSync(pa);
 							var panDetails = mongoose.model("panDetails",panSchema);
-
+							//console.log(imgData);
 							var cur_pan = new panDetails({
 								Cname:name,
 								fathersname:fname,
 								d_o_b:dob,
-								pan_number:pan
+								pan_number:pan,
+								data: imgData,
+								contentType : 'image/'+ext
+
 							});
+							
 							cur_pan.save(function(error) {
 							     return res.render('status',{scanstatus:"Data has been saved!"})
 							 if (error) {
@@ -178,6 +191,16 @@ app.post('/', function (req, res) {
 							  }
 
 							 });
+
+							/*cur_pan.update({pan_number:pan},{$set:{Cname:name,fathersname:fname,d_o_b:dob}},function(err, doc){
+								if(err){
+										return res.render('status',{scanstatus:"Error in DB"})
+										}
+
+								return res.render('status',{scanstatus:"Data has been saved!"})
+							});*/
+
+
 							
 						}				
 
@@ -194,8 +217,6 @@ app.post('/', function (req, res) {
 		})
 
 })
-
-
 
 
 
