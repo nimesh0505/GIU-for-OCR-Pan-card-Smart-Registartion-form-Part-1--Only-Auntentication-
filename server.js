@@ -82,7 +82,6 @@ app.post('/', function (req, res) {
 				  .recognize(pa, config)
 				  .then(text => {
 				    var phaseone = text.split("\n")
-				    //console.log(phaseone);
 				    var temp=[];
 				    var first = /TAX|TA|INCOME|INCO|DEPARTMENT|DEPART|DEPAR|DEPA/;
 				    for(var i = 0;i<=phaseone.length;i++)
@@ -97,7 +96,6 @@ app.post('/', function (req, res) {
 
 				    for(var i = 0;i<=temp.length;i++)
 				    {		var k = temp[i];
-				    	    //one = k.contains("TAX INCOME TA INCO DEPARTMENT DEPART DEPAR")
 				    	    one = first.test(k);//test is used to find multiple substring
 				    	    if(one!=-false && i!=(temp.length))
 				    	    {
@@ -108,18 +106,7 @@ app.post('/', function (req, res) {
 				    	    	break;
 				    	    }
 				    }
-				    /*console.log("######################OCR-SCANNED######################");
-				    console.log(ocrname);
-				    console.log(ocrfname);
-				    console.log(ocrdate);
-				    console.log(ocrpan);
-				    console.log("#####################INPUT-VALUE#######################");
-					console.log(name);
-					console.log(fname);
-					console.log(dob);
-					console.log(pan);
-					console.log("######################################################");*/
-
+	
 					if(ocrname!=name)
 						{
 						j++;
@@ -192,14 +179,7 @@ app.post('/', function (req, res) {
 
 							 });
 
-							/*cur_pan.update({pan_number:pan},{$set:{Cname:name,fathersname:fname,d_o_b:dob}},function(err, doc){
-								if(err){
-										return res.render('status',{scanstatus:"Error in DB"})
-										}
-
-								return res.render('status',{scanstatus:"Data has been saved!"})
-							});*/
-
+		
 
 							
 						}				
